@@ -7,9 +7,8 @@ disqusShortname: ''
 params:
   banner:
     buttonText: Get Started
-    subtitle: |-Nice to meet you here!
-      A RESPONSIVE SITE TEMPLATE DESIGNED BY HTML5 UP
-      AND RELEASED UNDER THE CREATIVE COMMONS.
+    subtitle: |- 
+      Nice to meet you here!
     title: Hi, my name is Yueru Wang, MFA2022 student at LBS.  
   blog: {}
   contact:
