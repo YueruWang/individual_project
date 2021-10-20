@@ -37,9 +37,9 @@ params:
     copyright: Yueru Wang
     enable: yes
     quicklinks:
-      - alt: HTML5 UP
+      - alt: My blog
         text: 'Design: '
-        url: https://www.html5up.net
+        url: https://yueru-portfolio.netlify.app/
     social:
 #      - icon: fa-twitter
 #        label: Twitter
