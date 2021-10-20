@@ -1,0 +1,202 @@
+---
+categories:  
+- ""    
+- ""
+date: "2021-09-30"
+description: CPI and components change
+draft: false
+image: 
+keywords: ""
+slug: cpi
+title: CPI and components change
+---
+
+<script src="/rmarkdown-libs/header-attrs/header-attrs.js"></script>
+
+
+<p>In this project, we would like to find out how has the CPI and its components changed over the last few years.</p>
+<p>We will use <a href="https://fredaccount.stlouisfed.org/public/datalist/843">CPI components at FRED</a>.</p>
+<pre class="r"><code>url &lt;- &quot;https://fredaccount.stlouisfed.org/public/datalist/843&quot;
+
+
+# We get the tables with CPI data that exist on FRED page 
+tables &lt;- url %&gt;% 
+  read_html() %&gt;% 
+  html_nodes(css=&quot;table&quot;)
+
+
+# Parse the HTML tables into a dataframe called `cpis` 
+# Use purr::map() to create a list of all tables in URL
+cpis &lt;- map(tables, . %&gt;% 
+             html_table(fill=TRUE)%&gt;% 
+             janitor::clean_names())
+
+# The second table on the page contains the list of all CPI components
+cpi_id &lt;- cpis[[2]] %&gt;% 
+  select(series_id)
+
+# Transform the dataframe into vector form
+vectorcpi_id &lt;- as.vector(t(cpi_id)) 
+  
+# Extract data from the FRED website 
+cpi_data &lt;- tidyquant::tq_get(vectorcpi_id, get = &quot;economic.data&quot;, from =  &quot;2000-01-01&quot;) 
+
+# Create a different dataframe that includes the observation titles called `cpi_names`
+cpi_names &lt;- cpis[[2]] 
+
+# Merge the data and the titles dataframes
+cpi_doc &lt;- left_join(cpi_data, cpi_names,
+                     by = c(&quot;symbol&quot; = &quot;series_id&quot;)) 
+
+# Use the lag function to get the 12 month change in prices for each component ...
+cpi_change &lt;- cpi_doc %&gt;%
+  group_by(title) %&gt;% 
+  mutate(year_change = price/lag(price, 12, na.rm = TRUE) - 1,
+            date) %&gt;% 
+  na.omit()
+
+cpi_change</code></pre>
+<pre><code>## # A tibble: 12,165 × 10
+## # Groups:   title [49]
+##    symbol         date       price title vintage_date units freq  seas_adj updated
+##    &lt;chr&gt;          &lt;date&gt;     &lt;dbl&gt; &lt;chr&gt; &lt;chr&gt;        &lt;chr&gt; &lt;chr&gt; &lt;chr&gt;    &lt;chr&gt;  
+##  1 CUSR0000SETG01 2001-01-01  239  Cons… Current      Inde… M     SA       2021-1…
+##  2 CUSR0000SETG01 2001-02-01  242  Cons… Current      Inde… M     SA       2021-1…
+##  3 CUSR0000SETG01 2001-03-01  239. Cons… Current      Inde… M     SA       2021-1…
+##  4 CUSR0000SETG01 2001-04-01  236. Cons… Current      Inde… M     SA       2021-1…
+##  5 CUSR0000SETG01 2001-05-01  238. Cons… Current      Inde… M     SA       2021-1…
+##  6 CUSR0000SETG01 2001-06-01  249. Cons… Current      Inde… M     SA       2021-1…
+##  7 CUSR0000SETG01 2001-07-01  249. Cons… Current      Inde… M     SA       2021-1…
+##  8 CUSR0000SETG01 2001-08-01  244. Cons… Current      Inde… M     SA       2021-1…
+##  9 CUSR0000SETG01 2001-09-01  242. Cons… Current      Inde… M     SA       2021-1…
+## 10 CUSR0000SETG01 2001-10-01  236. Cons… Current      Inde… M     SA       2021-1…
+## # … with 12,155 more rows, and 1 more variable: year_change &lt;dbl&gt;</code></pre>
+<pre class="r"><code># ... and make sure that &quot;All Items&quot; appears first in the dataframe
+# Additionally, we clean the titles
+cpi_change &lt;- cpi_change %&gt;% 
+  mutate(index = symbol == &quot;CPIAUCSL&quot;) %&gt;%
+  mutate(title = str_remove_all(title, &quot;Consumer Price Index for All Urban Consumers: &quot;)) %&gt;%
+  mutate(title = str_remove_all(title, &quot; in U.S. City Average&quot;))
+
+# Next, we order the components within each month based on their impact on the annual CPI change for that month and create a new dataframe
+cpi_ordered &lt;- cpi_change %&gt;%
+    group_by(date) %&gt;%
+  arrange(desc(index), date, desc(year_change))
+
+cpi_ordered </code></pre>
+<pre><code>## # A tibble: 12,165 × 11
+## # Groups:   date [249]
+##    symbol   date       price title     vintage_date units freq  seas_adj updated
+##    &lt;chr&gt;    &lt;date&gt;     &lt;dbl&gt; &lt;chr&gt;     &lt;chr&gt;        &lt;chr&gt; &lt;chr&gt; &lt;chr&gt;    &lt;chr&gt;  
+##  1 CPIAUCSL 2001-01-01  176. All Items Current      Inde… M     SA       2021-1…
+##  2 CPIAUCSL 2001-02-01  176  All Items Current      Inde… M     SA       2021-1…
+##  3 CPIAUCSL 2001-03-01  176. All Items Current      Inde… M     SA       2021-1…
+##  4 CPIAUCSL 2001-04-01  176. All Items Current      Inde… M     SA       2021-1…
+##  5 CPIAUCSL 2001-05-01  177. All Items Current      Inde… M     SA       2021-1…
+##  6 CPIAUCSL 2001-06-01  178. All Items Current      Inde… M     SA       2021-1…
+##  7 CPIAUCSL 2001-07-01  177. All Items Current      Inde… M     SA       2021-1…
+##  8 CPIAUCSL 2001-08-01  177. All Items Current      Inde… M     SA       2021-1…
+##  9 CPIAUCSL 2001-09-01  178. All Items Current      Inde… M     SA       2021-1…
+## 10 CPIAUCSL 2001-10-01  178. All Items Current      Inde… M     SA       2021-1…
+## # … with 12,155 more rows, and 2 more variables: year_change &lt;dbl&gt;, index &lt;lgl&gt;</code></pre>
+<pre class="r"><code>cpi_ordered2 &lt;- cpi_ordered %&gt;%
+  group_by(title)%&gt;%
+  select(title) %&gt;%
+  distinct()
+  
+component_order = as.character(cpi_ordered2$title)
+component_order</code></pre>
+<pre><code>##  [1] &quot;All Items&quot;                                    
+##  [2] &quot;Utility (Piped) Gas Service&quot;                  
+##  [3] &quot;Fuel Oil and Other Fuels&quot;                     
+##  [4] &quot;Household Energy&quot;                             
+##  [5] &quot;Energy Services&quot;                              
+##  [6] &quot;Fuels and Utilities&quot;                          
+##  [7] &quot;Motor Fuel&quot;                                   
+##  [8] &quot;Gasoline (All Types)&quot;                         
+##  [9] &quot;Airline Fares&quot;                                
+## [10] &quot;Public Transportation&quot;                        
+## [11] &quot;Electricity&quot;                                  
+## [12] &quot;Meats, Poultry, Fish, and Eggs&quot;               
+## [13] &quot;Housing&quot;                                      
+## [14] &quot;Transportation&quot;                               
+## [15] &quot;Used Cars and Trucks&quot;                         
+## [16] &quot;Private Transportation&quot;                       
+## [17] &quot;Fats and Oils&quot;                                
+## [18] &quot;Rent of Primary Residence&quot;                    
+## [19] &quot;Other Food Away from Home&quot;                    
+## [20] &quot;Motor Vehicle Maintenance and Repair&quot;         
+## [21] &quot;Alcoholic Beverages Away from Home&quot;           
+## [22] &quot;Shelter&quot;                                      
+## [23] &quot;Owners&#39; Equivalent Rent of Primary Residence&quot; 
+## [24] &quot;Owners&#39; Equivalent Rent of Residences&quot;        
+## [25] &quot;Food at Home&quot;                                 
+## [26] &quot;Cereals and Bakery Products&quot;                  
+## [27] &quot;Food and Beverages&quot;                           
+## [28] &quot;Food&quot;                                         
+## [29] &quot;Alcoholic Beverages&quot;                          
+## [30] &quot;Motor Vehicle Parts and Equipment&quot;            
+## [31] &quot;Lodging Away from Home&quot;                       
+## [32] &quot;Water and Sewer and Trash Collection Services&quot;
+## [33] &quot;Dairy and Related Products&quot;                   
+## [34] &quot;Food Away from Home&quot;                          
+## [35] &quot;Alcoholic Beverages at Home&quot;                  
+## [36] &quot;Other Foods&quot;                                  
+## [37] &quot;Other Food at Home&quot;                           
+## [38] &quot;Fruits and Vegetables&quot;                        
+## [39] &quot;Nonalcoholic Beverages and Beverage Materials&quot;
+## [40] &quot;New and Used Motor Vehicles&quot;                  
+## [41] &quot;Household Furnishings and Operations&quot;         
+## [42] &quot;Sugar and Sweets&quot;                             
+## [43] &quot;New Vehicles&quot;                                 
+## [44] &quot;Footwear&quot;                                     
+## [45] &quot;Women&#39;s and Girls&#39; Apparel&quot;                   
+## [46] &quot;Apparel&quot;                                      
+## [47] &quot;Men&#39;s and Boys&#39; Apparel&quot;                      
+## [48] &quot;Infants&#39; and Toddlers&#39; Apparel&quot;               
+## [49] &quot;Coffee&quot;</code></pre>
+<p>Next, we created the scatter plot of each component, where a negative change is shown in blue and a positive change in CPI is shown in red. We included the geom_smooth function to show the trend in CPI development</p>
+<pre class="r"><code>cpi_ordered %&gt;% 
+  filter(date &gt;= &quot;2016-01-01&quot;) %&gt;% 
+  ggplot(aes(x = date, y = year_change)) +
+  geom_point(aes(color = year_change &gt; 0)) +
+  geom_smooth(colour = &quot;dark grey&quot;, se=F) +
+  facet_wrap(~fct_relevel(title,component_order), scales = &quot;free&quot;) +
+  scale_y_continuous(labels=scales::percent) +
+  labs(
+       title=&quot;Yearly change of US CPI (All Items) and its components&quot;,
+       subtitle=&quot;YoY change being &lt;span style = &#39;color: red;&#39;&gt;positive&lt;/span&gt; or &lt;span style = &#39;color: blue;&#39;&gt;negative&lt;/span&gt; \nJan 2016 to Aug 2021&quot;,
+       y = &quot;YoY % Change&quot;,
+       x = &quot;&quot;,
+       caption = &quot;Data from St. Louis Fed FRED \nhttps://fredaccount.stlouisfed.org/public/datalist/843&quot;
+       ) +
+  theme_bw() +
+  theme(plot.subtitle = element_markdown(),
+        plot.caption = element_text(color=&quot;black&quot;),
+        legend.position = &quot;none&quot;)</code></pre>
+<p><img src="/blogs/cpi_files/figure-html/scrape_fred_cpi_data_graph-1.png" width="1440" style="display: block; margin: auto;" /></p>
+<p><img src="/Users/yura/Desktop/好好学习/Data Analytics for Finance/github/individual_project/images/cpi_components_since_2016.png" width="100%" style="display: block; margin: auto;" /></p>
+<p>We use <a href="https://www.bls.gov/cpi/tables/relative-importance/2020.htm">relative importance of components in the Consumer Price Indexes: U.S. city average, December 2020</a>.
+Here we created a new scatter plot that includes only the most important components of the overall CPI change.
+Since the FRED only supplies some of the major categories, we only include: All Items, Housing, Transportation, Food and Beverages, and Apparel.</p>
+<pre class="r"><code>cpi_ordered$title_ordered = factor(cpi_ordered$title, levels=c(&quot;All Items&quot;, &quot;Housing&quot;,&quot;Transportation&quot;,&quot;Food and Beverages&quot;,&quot;Apparel&quot;))
+
+cpi_ordered %&gt;%
+  filter(date &gt;= &quot;2016-01-01&quot;, title_ordered == c(&quot;All Items&quot;, &quot;Housing&quot;,&quot;Transportation&quot;,&quot;Food and Beverages&quot;,&quot;Apparel&quot;)) %&gt;%
+    ggplot(aes(x = date, y = year_change)) +
+  geom_point(aes(color = year_change &gt; 0)) +
+  geom_smooth(colour = &quot;dark grey&quot;, se=F) +
+  facet_wrap(~title_ordered, scales = &quot;free&quot;) +
+   scale_y_continuous(labels=scales::percent) +
+  labs(title=&quot;Yearly change of US CPI (All Items) and its most important components&quot;, 
+       subtitle=&quot;YoY change being &lt;span style = &#39;color: red;&#39;&gt;positive&lt;/span&gt; or &lt;span style = &#39;color: blue;&#39;&gt;negative&lt;/span&gt; \nJan 2016 to Aug 2021&quot;,
+       y = &quot;YoY % Change&quot;,
+       x = &quot;&quot;,
+       caption = &quot;Data from St. Louis Fed FRED \nhttps://fredaccount.stlouisfed.org/public/datalist/843&quot;
+       ) +
+  theme_bw() +
+  theme(plot.title = element_text(face=&quot;bold&quot;),
+        plot.subtitle = element_markdown(),
+        plot.caption = element_text(color=&quot;black&quot;),
+        legend.position = &quot;none&quot;)</code></pre>
+<p><img src="/blogs/cpi_files/figure-html/unnamed-chunk-1-1.png" width="648" style="display: block; margin: auto;" /></p>

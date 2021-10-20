@@ -9,7 +9,7 @@ params:
     buttonText: Get Started
     subtitle: |- 
       Nice to meet you here!
-    title: Hi, my name is Yueru Wang, MFA2022 student at LBS.  
+    title: Hi, my name is Yueru Wang.  
   blog: {}
   contact:
     address:
@@ -34,7 +34,7 @@ params:
     text: Please visit [this page](/)
   favicon: favicon.ico
   footer:
-    copyright: Company Name
+    copyright: Yueru Wang
     enable: yes
     quicklinks:
       - alt: HTML5 UP
@@ -68,8 +68,8 @@ params:
     links:
       - name: Home
         url: '#'
-      - name: Blogs
-        url: blogs
+#      - name: Blogs
+#        url: blogs
 #      - name: Generic Blog
 #        url: blogs/ipsum
 #      - name: Elements
@@ -80,38 +80,34 @@ params:
   tiles:
     enable: yes
     showcase:
-      - image: pic01.jpg
+      - image: lbs.jpg
         subtitle: Know more about me
-        title: Self-Introduction
-        url: blogs/aliquam
-      - image: pic02.jpg
-        subtitle: Feugiat Amet Tempus
-        title: Tempus
-        url: blogs/tempus
-      - image: pic03.jpg
-        subtitle: Lorem Etiam Nullam
-        title: Magna
-        url: blogs/magna
-      - image: pic04.jpg
-        subtitle: Nisl Sed Aliquam
-        title: Ipsum
-        url: blogs/ipsum
-      - image: pic05.jpg
-        subtitle: Ipsum Dolor Sit Amet
-        title: Consequat
-        url: blogs/ipsum
-      - image: pic06.jpg
-        subtitle: Feugiat Amet Tempus
-        title: Etiam
-        url: blogs/ipsum
+        title: Self-introduction
+        url: blogs/selfintro
+      - image: school.jpg
+        subtitle: Fudan University
+        title: My undergraduate school
+        url: blogs/school
+      - image: shanghai.jpg
+        subtitle: where I grown up
+        title: Shanghai
+        url: blogs/shanghai
+      - image: dance.jpg
+        subtitle: Street dance
+        title: My hobby
+        url: blogs/hobby
+      - image: stockprice.jpg
+        subtitle: data analyasis project
+        title: Risk Return of DJIA Industrial Average
+        url: blogs/risk_return
+      - image: cpi.jpg
+        subtitle: data analysis project2
+        title: CPI and components change
+        url: blogs/cpi
   two:
     buttonText: Get Started
     enable: yes
-    subtitle: "Nullam et orci eu lorem consequat tincidunt vivamus et sagittis libero.
-      \n    Mauris aliquet magna magna sed nunc rhoncus pharetra. \n    Pellentesque
-      condimentum sem. In efficitur ligula tate urna. Maecenas laoreet massa vel lacinia
-      pellentesque lorem ipsum dolor. \n    Nullam et orci eu lorem consequat tincidunt.
-      Vivamus et sagittis libero.\n    Mauris aliquet magna magna sed nunc rhoncus
-      amet pharetra et feugiat tempus."
-    title: Massa libero
+    subtitle: "Thank you for reading my website! \n Hope you know more about me. 
+    If you want to talk about anything mentioned here, please feel free to come and chat with me!"
+    title: That's the End!
     url: blogs

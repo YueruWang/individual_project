@@ -1,0 +1,173 @@
+---
+categories:  
+- ""    
+- ""
+date: "2021-09-30"
+description: CPI and components change
+draft: false
+image: 
+keywords: ""
+slug: cpi
+title: CPI and components change
+---
+In this project, we would like to find out how has the CPI and its components changed over the last few years.
+
+We will use [CPI components at FRED](https://fredaccount.stlouisfed.org/public/datalist/843).
+
+```{r, setup, include=FALSE}
+knitr::opts_chunk$set(
+  message = FALSE, 
+  warning = FALSE, 
+  tidy=FALSE,     # display code as typed
+  size="small")   # slightly smaller font for code
+options(digits = 3)
+
+# default figure size
+knitr::opts_chunk$set(
+  fig.width=6.75, 
+  fig.height=6.75,
+  fig.align = "center"
+)
+```
+
+
+```{r load-libraries, include=FALSE}
+library(tidyverse)  # Load ggplot2, dplyr, and all the other tidyverse packages
+library(mosaic)
+library(ggthemes)
+library(lubridate)
+library(here)
+library(skimr)
+library(janitor)
+library(httr)
+library(readxl)
+library(vroom)
+library(infer)
+library(tidyquant)
+library(rvest)
+library(ggtext)
+```
+
+```{r, scrape_fred_cpi_data,warnings= FALSE, message=FALSE}
+url <- "https://fredaccount.stlouisfed.org/public/datalist/843"
+
+
+# We get the tables with CPI data that exist on FRED page 
+tables <- url %>% 
+  read_html() %>% 
+  html_nodes(css="table")
+
+
+# Parse the HTML tables into a dataframe called `cpis` 
+# Use purr::map() to create a list of all tables in URL
+cpis <- map(tables, . %>% 
+             html_table(fill=TRUE)%>% 
+             janitor::clean_names())
+
+# The second table on the page contains the list of all CPI components
+cpi_id <- cpis[[2]] %>% 
+  select(series_id)
+
+# Transform the dataframe into vector form
+vectorcpi_id <- as.vector(t(cpi_id)) 
+  
+# Extract data from the FRED website 
+cpi_data <- tidyquant::tq_get(vectorcpi_id, get = "economic.data", from =  "2000-01-01") 
+
+# Create a different dataframe that includes the observation titles called `cpi_names`
+cpi_names <- cpis[[2]] 
+
+# Merge the data and the titles dataframes
+cpi_doc <- left_join(cpi_data, cpi_names,
+                     by = c("symbol" = "series_id")) 
+
+# Use the lag function to get the 12 month change in prices for each component ...
+cpi_change <- cpi_doc %>%
+  group_by(title) %>% 
+  mutate(year_change = price/lag(price, 12, na.rm = TRUE) - 1,
+            date) %>% 
+  na.omit()
+
+cpi_change
+
+# ... and make sure that "All Items" appears first in the dataframe
+# Additionally, we clean the titles
+cpi_change <- cpi_change %>% 
+  mutate(index = symbol == "CPIAUCSL") %>%
+  mutate(title = str_remove_all(title, "Consumer Price Index for All Urban Consumers: ")) %>%
+  mutate(title = str_remove_all(title, " in U.S. City Average"))
+
+# Next, we order the components within each month based on their impact on the annual CPI change for that month and create a new dataframe
+cpi_ordered <- cpi_change %>%
+    group_by(date) %>%
+  arrange(desc(index), date, desc(year_change))
+
+cpi_ordered 
+
+cpi_ordered2 <- cpi_ordered %>%
+  group_by(title)%>%
+  select(title) %>%
+  distinct()
+  
+component_order = as.character(cpi_ordered2$title)
+component_order
+
+```
+
+Next, we created the scatter plot of each component, where a negative change is shown in blue and a positive change in CPI is shown in red. We included the geom_smooth function to show the trend in CPI development
+
+```{r, scrape_fred_cpi_data_graph, fig.width= 15, fig.height= 10, warnings= FALSE, message=FALSE}
+cpi_ordered %>% 
+  filter(date >= "2016-01-01") %>% 
+  ggplot(aes(x = date, y = year_change)) +
+  geom_point(aes(color = year_change > 0)) +
+  geom_smooth(colour = "dark grey", se=F) +
+  facet_wrap(~fct_relevel(title,component_order), scales = "free") +
+  scale_y_continuous(labels=scales::percent) +
+  labs(
+       title="Yearly change of US CPI (All Items) and its components",
+       subtitle="YoY change being <span style = 'color: red;'>positive</span> or <span style = 'color: blue;'>negative</span> \nJan 2016 to Aug 2021",
+       y = "YoY % Change",
+       x = "",
+       caption = "Data from St. Louis Fed FRED \nhttps://fredaccount.stlouisfed.org/public/datalist/843"
+       ) +
+  theme_bw() +
+  theme(plot.subtitle = element_markdown(),
+        plot.caption = element_text(color="black"),
+        legend.position = "none")
+   
+```
+
+
+```{r cpi_all_components_since_2016, echo=FALSE, out.width="100%"}
+knitr::include_graphics(here::here("images", "cpi_components_since_2016.png"), error = FALSE)
+```
+
+We use [relative importance of components in the Consumer Price Indexes: U.S. city average, December 2020](https://www.bls.gov/cpi/tables/relative-importance/2020.htm). 
+Here we created a new scatter plot that includes only the most important components of the overall CPI change.
+Since the FRED only supplies some of the major categories, we only include: All Items, Housing, Transportation, Food and Beverages, and Apparel.
+
+```{r}
+
+cpi_ordered$title_ordered = factor(cpi_ordered$title, levels=c("All Items", "Housing","Transportation","Food and Beverages","Apparel"))
+
+cpi_ordered %>%
+  filter(date >= "2016-01-01", title_ordered == c("All Items", "Housing","Transportation","Food and Beverages","Apparel")) %>%
+    ggplot(aes(x = date, y = year_change)) +
+  geom_point(aes(color = year_change > 0)) +
+  geom_smooth(colour = "dark grey", se=F) +
+  facet_wrap(~title_ordered, scales = "free") +
+   scale_y_continuous(labels=scales::percent) +
+  labs(title="Yearly change of US CPI (All Items) and its most important components", 
+       subtitle="YoY change being <span style = 'color: red;'>positive</span> or <span style = 'color: blue;'>negative</span> \nJan 2016 to Aug 2021",
+       y = "YoY % Change",
+       x = "",
+       caption = "Data from St. Louis Fed FRED \nhttps://fredaccount.stlouisfed.org/public/datalist/843"
+       ) +
+  theme_bw() +
+  theme(plot.title = element_text(face="bold"),
+        plot.subtitle = element_markdown(),
+        plot.caption = element_text(color="black"),
+        legend.position = "none")
+
+```

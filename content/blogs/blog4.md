@@ -8,8 +8,17 @@ description: Nullam et orci eu lorem consequat tincidunt vivamus et sagittis mag
   sed magna lacinia magna pellentesque lorem ipsum dolor. Nullam et orci eu lorem
   consequat tincidunt. Vivamus et sagittis tempus.
 draft: false
-image: pic07.jpg
+image: photo1.jpg
 keywords: ""
-slug: aliquam
-title: Aliquam
+slug: selfintro
+title: Self-introduction
 ---
+Hello there!
+
+My name is Yueru Wang, MFA 2022 student at LBS. 
+
+Yes, that's the end of my self-introduction.
+
+You may find this to be very short, but this is because more detailed information about my undergraduate school, hometown and hobby are presented in other sectors. So maybe just try to recognize my face here and say hello to me next time!
+
+For more information, please continue reading!
