@@ -38,7 +38,7 @@ params:
     enable: yes
     quicklinks:
       - alt: My blog
-        text: 'Design: '
+        text: 'Homepage: '
         url: https://yueru-portfolio.netlify.app/
     social:
 #      - icon: fa-twitter
